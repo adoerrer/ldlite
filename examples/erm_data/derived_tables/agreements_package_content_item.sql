@@ -72,7 +72,7 @@ FROM (
         json_extract_path_text(pci.jsonb::json, 'accessStart') AS pci_access_start,
         json_extract_path_text(pci.jsonb::json, 'accessEnd') AS pci_access_end, 
         json_extract_path_text(pci.jsonb::json, 'pkg', 'id') AS pci_package_id,
-        'not_available' AS pci_removed_ts, -- not found
+        NULL AS pci_removed_ts, -- not found
         json_extract_path_text(pci.jsonb::json, 'pti', 'id') AS pci_platform_title_instance_id,
         json_extract_path_text(pci.jsonb::json, 'pti', 'platform', 'name') AS pt_platform_name,
         json_extract_path_text(pci.jsonb::json, 'pti', 'platform', 'id') AS pti_platform_id,
@@ -119,7 +119,7 @@ UNION
         json_extract_path_text(pci.jsonb::json, 'accessStart') AS pci_access_start,
         json_extract_path_text(pci.jsonb::json, 'accessEnd') AS pci_access_end, 
         json_extract_path_text(pci.jsonb::json, 'pkg', 'id') AS pci_package_id,
-        'not_available' AS pci_removed_ts, -- not found
+        NULL AS pci_removed_ts, -- not found
         json_extract_path_text(pci.jsonb::json, 'pti', 'id') AS pci_platform_title_instance_id,
         json_extract_path_text(pci.jsonb::json, 'pti', 'platform', 'name') AS pt_platform_name,
         json_extract_path_text(pci.jsonb::json, 'pti', 'platform', 'id') AS pti_platform_id,
