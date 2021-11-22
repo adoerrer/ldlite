@@ -3,12 +3,12 @@
 # Demo sites
 current_release = 'https://folio-juniper-okapi.dev.folio.org/'
 latest_snapshot = 'https://folio-snapshot-okapi.dev.folio.org/'
-mainz_test = 'https://folio-test.ub.uni-mainz.de/okapi/'
+ldp_test = 'https://folio-test.ub.uni-mainz.de/okapi/'
 
 
 ###############################################################################
 # Select a demo site here:
-selected_site = mainz_test
+selected_site = ldp_test
 ###############################################################################
 # Note that these demo sites are unavailable at certain times in the evening
 # (Eastern time) or if a bug is introduced and makes one of them unresponsive.
@@ -23,7 +23,7 @@ selected_site = mainz_test
 import traceback
 import ldlite
 ld = ldlite.LDLite()
-ld.connect_okapi(url=selected_site, tenant='ubmz', user='adminC', password='xxxx')
+ld.connect_okapi(url=selected_site, tenant='diku', user='user', password='xxx')
 
 #db = ld.connect_db(filename='ldlite.db')
 # For PostgreSQL, use connect_db_postgresql() instead of connect_db():
@@ -31,7 +31,6 @@ db = ld.connect_db_postgresql(dsn='dbname=ldlite_01 host=localhost user=ldlite p
 
 queries = [
 ('folio_agreements.subscription_agreement', '/erm/sas', 'cql.allRecords=1 sortby id'),
-#('folio_agreements.publicLookup', '/erm/sas/publicLookup', 'cql.allRecords=1 sortby id'),
 ('folio_agreements.entitlement', '/erm/entitlements', 'cql.allRecords=1 sortby id'),
 ('folio_agreements.files', '/erm/files', 'cql.allRecords=1 sortby id'),
 ('folio_agreements.contacts', '/erm/contacts', 'cql.allRecords=1 sortby id'),
@@ -46,7 +45,6 @@ queries = [
 ('folio_agreements.platform', '/erm/platforms', 'cql.allRecords=1 sortby id'),
 ('folio_agreements.platform_title_instance', '/erm/pti', 'cql.allRecords=1 sortby id'),
 ('folio_agreements.custom_property', '/erm/custprops', 'cql.allRecords=1 sortby id'),
-# ('folio_agreements.sts', '/erm/sts', 'cql.allRecords=1 sortby id'),
 ('folio_agreements.subscription_agreement_licences', '/erm/sas/linkedLicenses', 'cql.allRecords=1 sortby id'),
     ]
 

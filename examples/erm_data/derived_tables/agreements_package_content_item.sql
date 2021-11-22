@@ -3,6 +3,17 @@ DROP TABLE IF EXISTS folio_derived.agreements_package_content_item;
 -- Creates a derived table on all needed data of package_content_items that either
 -- are linked directly to an entitlement or have an package linked that is linked to an entitlement
 CREATE TABLE folio_derived.agreements_package_content_item AS
+WITH identifiers AS (
+    SELECT
+        json_extract_path_text(pci.jsonb::json, 'id') AS pci_id,    
+        'not_available' AS id_id,
+        json_extract_path_text(ids.data, 'identifier', 'value') AS identifier_value,
+        'not_available' AS identifier_namespace_id,
+        json_extract_path_text(ids.data, 'identifier', 'ns', 'value') AS identifiernamespace_name
+    FROM
+        folio_agreements.package_content_item AS pci
+        CROSS JOIN  json_array_elements(json_extract_path(pci.jsonb::json, 'pti', 'titleInstance', 'identifiers')) AS ids(data)
+)
 SELECT
     pci_list.pci_id,
     pci_list.pci_access_start,
@@ -46,129 +57,100 @@ SELECT
     pci_list.res_publication_type_label,
     pci_list.res_publication_type_category
 FROM (
-    SELECT
-        --    ent.ent_id AS entitlement_id,
-        --    id.id AS identifier_id,
-        --    id.id_value AS identifier_value,
-        --    id.id_ns_fk AS identifier_namespace_id,
-        --    idns.idns_value AS identifiernamespace_name,
-        pci.jsonb::json -> 'pkg' -> 'vendor' ->> 'name' AS org_vendor_name,
-        pci.jsonb::json -> 'pkg' ->> 'reference' AS package_reference,
-        pci.jsonb::json -> 'pkg' -> 'remoteKb' ->> 'id' AS package_remote_kb_id,
-        pci.jsonb::json -> 'pkg' ->> 'source' AS package_source,
-        pci.jsonb::json -> 'pkg' -> 'vendor' ->> 'id' AS package_vendor_id,
-        pci.jsonb::json ->> 'id' AS pci_id,
-    	pci.jsonb::json ->> 'accessStart' AS pci_access_start,
-     	pci.jsonb::json ->> 'accessEnd' AS pci_access_end,
-     	pci.jsonb::json -> 'pkg' ->> 'id' AS pci_package_id,
--- not found         pci.pci_removed_ts,
-        pci.jsonb::json -> 'pti' ->> 'id' AS pci_platform_title_instance_id,
-        pci.jsonb::json -> 'pti' -> 'platform'->> 'name' AS pt_platform_name,
-        pci.jsonb::json -> 'pti' -> 'platform'->> 'id' AS pti_platform_id,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' ->> 'id' AS pti_title_instance_id,
-        pci.jsonb::json -> 'pti' ->> 'url' AS pti_url,
-        pci.jsonb::json -> 'pkg' -> 'remoteKb' ->> 'name' AS remotekb_remote_kb_name,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' ->> 'name' AS res_name,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' -> 'publicationType' ->> 'id' AS res_publication_type_fk,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' -> 'subType' ->> 'id' AS res_sub_type_fk,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' -> 'type' ->> 'id' AS res_type_fk,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' -> 'publicationType' ->> 'value' AS res_publication_type_value,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' -> 'publicationType' ->> 'label' AS res_publication_type_label,
-     --   rpubc.rdc_description AS res_publication_type_category,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' -> 'subType' ->> 'value' AS res_sub_type_value,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' -> 'subType' ->> 'label' AS res_sub_type_label,
-     --   rstc.rdc_description AS res_sub_type_category,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' -> 'type' ->> 'value' AS res_type_value,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' -> 'type' ->> 'label' AS res_type_label,
-     --   rtc.rdc_description AS res_type_category,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' ->> 'id' AS ti_id,
-     --   pci.jsonb::json -> 'pti' -> 'titleInstance' ->> 'id' AS ti_date_monograph_published,
-     --   pci.jsonb::json -> 'pti' -> 'titleInstance' ->> 'id' AS ti_first_author,
-     --   pci.jsonb::json -> 'pti' -> 'titleInstance' ->> 'id' AS ti_first_editor,
-     --   pci.jsonb::json -> 'pti' -> 'titleInstance' ->> 'id' AS ti_monograph_edition,
-     --   pci.jsonb::json -> 'pti' -> 'titleInstance' ->> 'id' AS ti_monograph_volume,
-        pci.jsonb::json -> 'pti' -> 'titleInstance' -> 'work' ->> 'id' AS ti_work_id
+	SELECT
+        json_extract_path_text(ent.jsonb::json, 'id') AS entitlement_id,
+        ids.id_id AS identifier_id,
+        ids.identifier_value AS identifier_value,
+        ids.identifier_namespace_id AS identifier_namespace_id,
+        ids.identifiernamespace_name AS identifiernamespace_name,
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'vendor', 'name') AS org_vendor_name,
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'reference') AS package_reference,
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'remoteKb', 'id') AS package_remote_kb_id,
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'source') AS package_source,
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'vendor', 'id') AS package_vendor_id,
+        json_extract_path_text(pci.jsonb::json, 'id') AS pci_id,
+        json_extract_path_text(pci.jsonb::json, 'accessStart') AS pci_access_start,
+        json_extract_path_text(pci.jsonb::json, 'accessEnd') AS pci_access_end, 
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'id') AS pci_package_id,
+        'not_available' AS pci_removed_ts, -- not found
+        json_extract_path_text(pci.jsonb::json, 'pti', 'id') AS pci_platform_title_instance_id,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'platform', 'name') AS pt_platform_name,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'platform', 'id') AS pti_platform_id,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'id') AS pti_title_instance_id,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'url') AS pti_url,
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'remoteKb', 'name') AS remotekb_remote_kb_name,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'name') AS res_name,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'publicationType', 'id') AS res_publication_type_fk,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'subType', 'id') AS res_sub_type_fk,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'type', 'id') AS res_type_fk,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'publicationType', 'value') AS res_publication_type_value,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'publicationType', 'label') AS res_publication_type_label,
+        'not_available' AS res_publication_type_category, -- not exported in ref_data table
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'subType', 'value') AS res_sub_type_value,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'subType', 'label') AS res_sub_type_label,
+        'not_available' res_sub_type_category, -- not exported in ref_data table
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'type', 'value') AS res_type_value,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'type', 'label') AS res_type_label,
+        'not_available' AS res_type_category, -- not exported in ref_data table
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'id') AS ti_id, 
+        'not_available' AS ti_date_monograph_published, -- not found
+        'not_available' AS ti_first_author, -- not found
+        'not_available' AS ti_first_editor, -- not found
+        'not_available' AS ti_monograph_edition, -- not found
+        'not_available' AS ti_monograph_volume, -- not found
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'work', 'id') AS ti_work_id
     FROM
         folio_agreements.package_content_item AS pci
-        INNER JOIN folio_agreements.entitlement AS ent ON pci.id = ent.ent_resource_fk
-        LEFT JOIN folio_agreements.package AS pack ON pci.pci_pkg_fk = pack.id
-        LEFT JOIN folio_agreements.org AS org ON pack.pkg_vendor_fk = org.org_id
-        LEFT JOIN folio_agreements.remotekb AS remotekb ON pack.pkg_remote_kb = remotekb.rkb_id
-        LEFT JOIN folio_agreements.platform_title_instance AS pti ON pci.pci_pti_fk = pti.id
-        LEFT JOIN folio_agreements.platform AS pt ON pti.pti_pt_fk = pt.pt_id
-        LEFT JOIN folio_agreements.title_instance AS ti ON pti.pti_ti_fk = ti.id
-        LEFT JOIN folio_agreements.identifier_occurrence AS oc ON ti.id = oc.io_ti_fk
-        LEFT JOIN folio_agreements.identifier AS id ON oc.io_identifier_fk = id.id_id
-        LEFT JOIN folio_agreements.identifier_namespace AS idns ON id.id_ns_fk = idns.idns_id
-        LEFT JOIN folio_agreements.erm_resource AS res ON res.id = pti.pti_ti_fk
-        LEFT JOIN folio_agreements.refdata_value AS rst ON res.res_sub_type_fk = rst.rdv_id
-        LEFT JOIN folio_agreements.refdata_category AS rstc ON rst.rdv_owner = rstc.rdc_id
-        LEFT JOIN folio_agreements.refdata_value AS rt ON res.res_type_fk = rt.rdv_id
-        LEFT JOIN folio_agreements.refdata_category AS rtc ON rt.rdv_owner = rtc.rdc_id
-        LEFT JOIN folio_agreements.refdata_value AS rpub ON res.res_publication_type_fk = rpub.rdv_id
-        LEFT JOIN folio_agreements.refdata_category AS rpubc ON rpub.rdv_owner = rpubc.rdc_id
+        INNER JOIN folio_agreements.entitlement AS ent ON json_extract_path_text(pci.jsonb::json, 'id') = json_extract_path_text(ent.jsonb::json, 'resource', 'id')
+		LEFT JOIN identifiers AS ids ON ids.pci_id = json_extract_path_text(pci.jsonb::json, 'id')
 UNION
-    SELECT
-        ent.ent_id AS entitlement_id,
-        id.id_id AS identifier_id,
-        id.id_value AS identifier_value,
-        id.id_ns_fk AS identifier_namespace_id,
-        idns.idns_value AS identifiernamespace_name,
-        org.org_name AS org_vendor_name,
-        pack.pkg_reference AS package_reference,
-        pack.pkg_remote_kb AS package_remote_kb_id,
-        pack.pkg_source AS package_source,
-        pack.pkg_vendor_fk AS package_vendor_id,
-        pci.id AS pci_id,
-        pci.pci_access_start,
-        pci.pci_access_end,
-        pci.pci_pkg_fk AS pci_package_id,
-        pci.pci_removed_ts,
-        pci.pci_pti_fk AS pci_platform_title_instance_id,
-        pt.pt_name AS pt_platform_name,
-        pti.pti_pt_fk AS pti_platform_id,
-        pti.pti_ti_fk AS pti_title_instance_id,
-        pti.pti_url,
-        remotekb.rkb_name AS remotekb_remote_kb_name,
-        res.res_name,
-        res.res_publication_type_fk,
-        res.res_sub_type_fk,
-        res.res_type_fk,
-        rpub.rdv_value AS res_publication_type_value,
-        rpub.rdv_label AS res_publication_type_label,
-        rpubc.rdc_description AS res_publication_type_category,
-        rst.rdv_value AS res_sub_type_value,
-        rst.rdv_label AS res_sub_type_label,
-        rstc.rdc_description AS res_sub_type_category,
-        rt.rdv_value AS res_type_value,
-        rt.rdv_label AS res_type_label,
-        rtc.rdc_description AS res_type_category,
-        ti.id AS ti_id,
-        ti.ti_date_monograph_published,
-        ti.ti_first_author,
-        ti.ti_first_editor,
-        ti.ti_monograph_edition,
-        ti.ti_monograph_volume,
-        ti.ti_work_fk AS ti_work_id
+	SELECT
+        json_extract_path_text(ent.jsonb::json, 'id') AS entitlement_id,
+        ids.id_id AS identifier_id,
+        ids.identifier_value AS identifier_value,
+        ids.identifier_namespace_id AS identifier_namespace_id,
+        ids.identifiernamespace_name AS identifiernamespace_name,
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'vendor', 'name') AS org_vendor_name,
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'reference') AS package_reference,
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'remoteKb', 'id') AS package_remote_kb_id,
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'source') AS package_source,
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'vendor', 'id') AS package_vendor_id,
+        json_extract_path_text(pci.jsonb::json, 'id') AS pci_id,
+        json_extract_path_text(pci.jsonb::json, 'accessStart') AS pci_access_start,
+        json_extract_path_text(pci.jsonb::json, 'accessEnd') AS pci_access_end, 
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'id') AS pci_package_id,
+        'not_available' AS pci_removed_ts, -- not found
+        json_extract_path_text(pci.jsonb::json, 'pti', 'id') AS pci_platform_title_instance_id,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'platform', 'name') AS pt_platform_name,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'platform', 'id') AS pti_platform_id,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'id') AS pti_title_instance_id,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'url') AS pti_url,
+        json_extract_path_text(pci.jsonb::json, 'pkg', 'remoteKb', 'name') AS remotekb_remote_kb_name,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'name') AS res_name,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'publicationType', 'id') AS res_publication_type_fk,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'subType', 'id') AS res_sub_type_fk,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'type', 'id') AS res_type_fk,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'publicationType', 'value') AS res_publication_type_value,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'publicationType', 'label') AS res_publication_type_label,
+        'not_available' AS res_publication_type_category, -- not exported in ref_data table
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'subType', 'value') AS res_sub_type_value,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'subType', 'label') AS res_sub_type_label,
+        'not_available' res_sub_type_category, -- not exported in ref_data table
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'type', 'value') AS res_type_value,
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'type', 'label') AS res_type_label,
+        'not_available' AS res_type_category, -- not exported in ref_data table
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'id') AS ti_id, 
+        'not_available' AS ti_date_monograph_published, -- not found
+        'not_available' AS ti_first_author, -- not found
+        'not_available' AS ti_first_editor, -- not found
+        'not_available' AS ti_monograph_edition, -- not found
+        'not_available' AS ti_monograph_volume, -- not found
+        json_extract_path_text(pci.jsonb::json, 'pti', 'titleInstance', 'work', 'id') AS ti_work_id
     FROM
         folio_agreements.package_content_item AS pci
-        LEFT JOIN folio_agreements.package AS pack ON pci.pci_pkg_fk = pack.id
-        INNER JOIN folio_agreements.entitlement AS ent ON ent.ent_resource_fk = pack.id
-        LEFT JOIN folio_agreements.org AS org ON pack.pkg_vendor_fk = org.org_id
-        LEFT JOIN folio_agreements.remotekb AS remotekb ON pack.pkg_remote_kb = remotekb.rkb_id
-        LEFT JOIN folio_agreements.platform_title_instance AS pti ON pci.pci_pti_fk = pti.id
-        LEFT JOIN folio_agreements.platform AS pt ON pti.pti_pt_fk = pt.pt_id
-        LEFT JOIN folio_agreements.title_instance AS ti ON pti.pti_ti_fk = ti.id
-        LEFT JOIN folio_agreements.identifier_occurrence AS oc ON ti.id = oc.io_ti_fk
-        LEFT JOIN folio_agreements.identifier AS id ON oc.io_identifier_fk = id.id_id
-        LEFT JOIN folio_agreements.identifier_namespace AS idns ON id.id_ns_fk = idns.idns_id
-        LEFT JOIN folio_agreements.erm_resource AS res ON res.id = pti.pti_ti_fk
-        LEFT JOIN folio_agreements.refdata_value AS rst ON res.res_sub_type_fk = rst.rdv_id
-        LEFT JOIN folio_agreements.refdata_category AS rstc ON rst.rdv_owner = rstc.rdc_id
-        LEFT JOIN folio_agreements.refdata_value AS rt ON res.res_type_fk = rt.rdv_id
-        LEFT JOIN folio_agreements.refdata_category AS rtc ON rt.rdv_owner = rtc.rdc_id
-        LEFT JOIN folio_agreements.refdata_value AS rpub ON res.res_publication_type_fk = rpub.rdv_id
-        LEFT JOIN folio_agreements.refdata_category AS rpubc ON rpub.rdv_owner = rpubc.rdc_id) AS pci_list;
+        INNER JOIN folio_agreements.entitlement AS ent ON json_extract_path_text(pci.jsonb::json, 'pkg', 'id') = json_extract_path_text(ent.jsonb::json, 'resource', 'id')
+		LEFT JOIN identifiers AS ids ON ids.pci_id = json_extract_path_text(pci.jsonb::json, 'id')
+	) AS pci_list;
 
 CREATE INDEX ON folio_derived.agreements_package_content_item (pci_id);
 
