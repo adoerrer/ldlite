@@ -4,14 +4,12 @@
 import ldlite
 ```
 
-
 ```python
 # We also have to initialize LDLite.  This will create a variable "ld" which we
 # can use to call LDLite functions.
 
 ld = ldlite.LDLite()
 ```
-
 
 ```python
 # LDLite must be configured to connect to an Okapi instance and to a database
@@ -24,7 +22,6 @@ ld.connect_okapi(url='https://folio-juniper-okapi.dev.folio.org/',
                  password='admin')
 ```
 
-
 ```python
 # Next we call "ld.connect_db()" to create a database and connect it to DBLite.
 # The database will be stored in a file called "ldlite.db".
@@ -32,20 +29,17 @@ ld.connect_okapi(url='https://folio-juniper-okapi.dev.folio.org/',
 db = ld.connect_db(filename='ldlite.db')
 ```
 
-
 ```python
 # The function "ld.query()" is used to send CQL queries to Okapi.  In this case
 # we will query patron groups and store the result in a new table named "g".
 # In addition to "g", this will create other tables having names beginning with
-# "g_j" where JSON data will be transformed to tables.
+# "g__t" where JSON data will be transformed to tables.
 
 _ = ld.query(table='g', path='/groups', query='cql.allRecords=1 sortby id')
 ```
 
     ldlite: querying: /groups
-    ldlite: created tables: g, g_j, g_j_metadata
-
-
+    ldlite: created tables: g, g__t, g__tcatalog
 
 ```python
 # We can use "ld.select()" to show a quick view of a table, in this case table
@@ -95,15 +89,12 @@ ld.select(table='g', limit=10)
           |     } 
           | } 
     (4 rows)
-    
-
-
 
 ```python
-# When ld.query() created table "g", it also created another table "g_j" with
-# JSON fields extracted into columns.
+# When ld.query() created table "g", it also created another table
+# "g__t" with JSON fields extracted into columns.
 
-ld.select(table='g_j', limit=10)
+ld.select(table='g__t', limit=10)
 ```
 
      __id |                  id                  |         desc          | expiration_offset_in_days |   group   
@@ -113,26 +104,6 @@ ld.select(table='g_j', limit=10)
         3 | ad0bc554-d5bc-463c-85d1-5562127ae91b | Graduate Student      |                           | graduate  
         4 | bdc2b6d4-5ceb-4a12-ab46-249b9a68473e | Undergraduate Student |                           | undergrad 
     (4 rows)
-    
-
-
-
-```python
-# And "g_j_metadata".
-
-ld.select(table='g_j_metadata', limit=10)
-```
-
-     __id |                  id                  |         created_date          |         updated_date          
-    ------+--------------------------------------+-------------------------------+-------------------------------
-        1 | 3684a786-6671-4268-8ed0-9db82ebca60b | 2021-09-20T01:53:31.055+00:00 | 2021-09-20T01:53:31.055+00:00 
-        2 | 503a81cd-6c26-400f-b620-14c08943697c | 2021-09-20T01:53:31.084+00:00 | 2021-09-20T01:53:31.084+00:00 
-        3 | ad0bc554-d5bc-463c-85d1-5562127ae91b | 2021-09-20T01:53:31.108+00:00 | 2021-09-20T01:53:31.108+00:00 
-        4 | bdc2b6d4-5ceb-4a12-ab46-249b9a68473e | 2021-09-20T01:53:31.123+00:00 | 2021-09-20T01:53:31.123+00:00 
-    (4 rows)
-    
-
-
 
 ```python
 # We will also query user data and store the result in table "u" etc.
@@ -141,9 +112,7 @@ _ = ld.query(table='u', path='/users', query='cql.allRecords=1 sortby id')
 ```
 
     ldlite: querying: /users
-    ldlite: created tables: u, u_j, u_j_metadata, u_j_personal
-
-
+    ldlite: created tables: u, u__t, u__t__departments, u__t__personal__addresses, u__t__proxy_for, u__tcatalog
 
 ```python
 # We can now join table "u" to table "g" and generate a list of user names and
@@ -154,9 +123,9 @@ cur = db.cursor()
 
 cur.execute("""
     CREATE TABLE user_groups AS
-    SELECT u_j.id, u_j.username, g_j.group
-        FROM u_j
-            JOIN g_j ON u_j.patron_group = g_j.id;
+    SELECT u__t.id, u__t.username, g__t.group
+        FROM u__t
+            JOIN g__t ON u__t.patron_group = g__t.id;
     """)
 
 ld.select(table='user_groups', limit=10)
@@ -175,18 +144,14 @@ ld.select(table='user_groups', limit=10)
      08522da4-668a-4450-a769-3abfae5678ad | johan    | staff     
      0a246f61-d85f-42b6-8dcc-48d25a46690b | maxine   | staff     
     (10 rows)
-    
-
-
 
 ```python
 # The "user_groups" table can also be exported to a CSV or Excel file.
 
-ld.to_csv(table='user_groups', filename='user_groups.csv')
+ld.export_csv(table='user_groups', filename='user_groups.csv')
 
-ld.to_xlsx(table='user_groups', filename='user_groups.xlsx')
+ld.export_excel(table='user_groups', filename='user_groups.xlsx')
 ```
-
 
 ```python
 # We can look at the distribution of groups.
@@ -208,8 +173,6 @@ print(df)
     2    faculty     71
     3   graduate     62
 
-
-
 ```python
 # We can plot the distribution with a bar graph.
 
@@ -218,12 +181,7 @@ import matplotlib
 _ = df.plot(kind='bar', x='user_group')
 ```
 
-
-    
 ![png](output_13_1.png)
-    
-
-
 
 ```python
 # Or a pie chart.
@@ -231,8 +189,6 @@ _ = df.plot(kind='bar', x='user_group')
 _ = df.plot(kind='pie', x='user_group', y='count')
 ```
 
-
-    
 ![png](output_14_1.png)
     
 
